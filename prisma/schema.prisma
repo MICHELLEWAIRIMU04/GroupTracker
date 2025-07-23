@@ -1,5 +1,5 @@
 generator client {
-  provider = "sed -i 's/provider = "postgresql"/provider = "sqlite"/' prisma/schema.prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
