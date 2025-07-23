@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  username     String        @unique
+  email        String        @unique
+  password     String
+  isAdmin      Boolean       @default(false) @map("is_admin")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  
+  contributions Contribution[]
+  ownedGroups   Group[]       @relation("GroupOwner")
+  groups        GroupMember[]
+  
+  @@map("users")
+}
+
+model Group {
+  id          Int           @id @default(autoincrement())
+  name        String
+  description String?
+  ownerId     Int           @map("owner_id")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  
+  owner       User          @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     GroupMember[]
+  activities  Activity[]
+  
+  @@map("groups")
+}
+
+model GroupMember {
+  userId    Int      @map("user_id")
+  groupId   Int      @map("group_id")
+  isAdmin   Boolean  @default(false) @map("is_admin")
+  joinedAt  DateTime @default(now()) @map("joined_at")
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  
+  @@id([userId, groupId])
+  @@map("group_members")
+}
+
+model Activity {
+  id          Int           @id @default(autoincrement())
+  name        String
+  description String?
+  groupId     Int           @map("group_id")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  
+  group         Group         @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  contributions Contribution[]
+  
+  @@map("activities")
+}
+
+model Contribution {
+  id               Int      @id @default(autoincrement())
+  userId           Int      @map("user_id")
+  activityId       Int      @map("activity_id")
+  contributionType String   @map("contribution_type")
+  amount           Float
+  currency         String?  @default("USD")
+  description      String?
+  date             DateTime @default(now())
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  
+  @@map("contributions")
+}
