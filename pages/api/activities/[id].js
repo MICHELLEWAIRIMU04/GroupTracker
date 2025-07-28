@@ -144,6 +144,15 @@ export default async function handler(req, res) {
       })
     } catch (error) {
       console.error('Get activity error:', error)
+      
+      // Handle different types of database errors
+      if (error.code === 'P1001') {
+        return res.status(503).json({ 
+          message: 'Database temporarily unavailable. Please try again in a moment.',
+          error: 'DATABASE_CONNECTION_ERROR'
+        })
+      }
+      
       res.status(500).json({ message: 'Failed to retrieve activity' })
     }
   } else {

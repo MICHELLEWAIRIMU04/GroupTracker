@@ -1,11 +1,16 @@
+import { SessionProvider } from 'next-auth/react'
+import { ThemeProvider } from 'next-themes'
+import { QueryClient, QueryClientProvider } from 'react-query'
+import { AuthProvider } from '../lib/useAuth'
+import { useState } from 'react'
 import '../styles/globals.css'
 import Layout from '../components/Layout'
 import ErrorBoundary from '../components/ErrorBoundary'
-import { AuthProvider } from '../lib/useAuth'
-import { QueryClient, QueryClientProvider } from 'react-query'
-import { useState, useEffect } from 'react'
 
-export default function App({ Component, pageProps }) {
+export default function App({ 
+  Component, 
+  pageProps: { session, ...pageProps } 
+}) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
@@ -17,13 +22,22 @@ export default function App({ Component, pageProps }) {
 
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <Layout>
-            <Component {...pageProps} />
-          </Layout>
-        </AuthProvider>
-      </QueryClientProvider>
+      <SessionProvider session={session}>
+        <ThemeProvider 
+          attribute="class" 
+          defaultTheme="system" 
+          enableSystem={true}
+          disableTransitionOnChange={false}
+        >
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <Layout>
+                <Component {...pageProps} />
+              </Layout>
+            </AuthProvider>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </SessionProvider>
     </ErrorBoundary>
   )
 }

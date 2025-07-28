@@ -1,4 +1,3 @@
-// scripts/init-db.js
 const { PrismaClient } = require('@prisma/client')
 const bcrypt = require('bcryptjs')
 
@@ -6,22 +5,28 @@ const prisma = new PrismaClient()
 
 async function main() {
   try {
-    console.log('🚀 Initializing database...')
+    console.log('🔄 Initializing database...')
+    
+    // Test database connection first
+    await prisma.$connect()
+    console.log('✅ Database connection successful')
     
     // Create default admin user
     const existingAdmin = await prisma.user.findUnique({
       where: { username: 'admin' }
     })
 
+    let admin
     if (!existingAdmin) {
       const hashedPassword = await bcrypt.hash('admin123', 12)
       
-      const admin = await prisma.user.create({
+      admin = await prisma.user.create({
         data: {
           username: 'admin',
           email: 'admin@example.com',
           password: hashedPassword,
-          isAdmin: true
+          isAdmin: true,
+          emailVerified: new Date() // Mark as verified
         }
       })
       
@@ -30,22 +35,26 @@ async function main() {
         password: 'admin123',
         email: 'admin@example.com'
       })
+    } else {
+      admin = existingAdmin
+      console.log('ℹ️  Admin user already exists')
+    }
 
+    // Create sample data (optional)
+    const userCount = await prisma.user.count()
+    if (userCount === 1) { // Only admin exists
+      console.log('🔄 Creating sample data...')
+      
       // Create a sample regular user
-      const hashedUserPassword = await bcrypt.hash('password123', 12)
+      const hashedPassword = await bcrypt.hash('password123', 12)
       const sampleUser = await prisma.user.create({
         data: {
           username: 'john_doe',
           email: 'john@example.com',
-          password: hashedUserPassword,
-          isAdmin: false
+          password: hashedPassword,
+          isAdmin: false,
+          emailVerified: new Date() // Mark as verified
         }
-      })
-
-      console.log('✅ Sample user created:', {
-        username: 'john_doe',
-        password: 'password123',
-        email: 'john@example.com'
       })
 
       // Create a sample group
@@ -63,8 +72,6 @@ async function main() {
         }
       })
 
-      console.log('✅ Sample group created:', sampleGroup.name)
-
       // Create a sample activity
       const sampleActivity = await prisma.activity.create({
         data: {
@@ -73,8 +80,6 @@ async function main() {
           groupId: sampleGroup.id
         }
       })
-
-      console.log('✅ Sample activity created:', sampleActivity.name)
 
       // Create sample contributions
       await prisma.contribution.createMany({
@@ -97,16 +102,35 @@ async function main() {
         ]
       })
 
-      console.log('✅ Sample contributions created')
-      
+      console.log('✅ Sample data created successfully')
     } else {
-      console.log('ℹ️  Admin user already exists')
+      console.log('ℹ️  Sample data already exists')
     }
+
+    // Verify the data
+    const totalUsers = await prisma.user.count()
+    const totalGroups = await prisma.group.count()
+    const totalActivities = await prisma.activity.count()
+    const totalContributions = await prisma.contribution.count()
+
+    console.log('📊 Database Summary:')
+    console.log(`   Users: ${totalUsers}`)
+    console.log(`   Groups: ${totalGroups}`)
+    console.log(`   Activities: ${totalActivities}`)
+    console.log(`   Contributions: ${totalContributions}`)
 
     console.log('🎉 Database initialization completed!')
     
   } catch (error) {
     console.error('❌ Database initialization failed:', error)
+    
+    if (error.code === 'P1001') {
+      console.error('🔧 Connection Error - Check:')
+      console.error('   1. Your DATABASE_URL in .env.local')
+      console.error('   2. Your Neon database is running')
+      console.error('   3. Your internet connection')
+    }
+    
     throw error
   } finally {
     await prisma.$disconnect()

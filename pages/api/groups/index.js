@@ -1,8 +1,41 @@
 import { prisma } from '../../../lib/prisma'
-import { requireAuth } from '../../../lib/auth'
+import { verifyToken } from '../../../lib/auth'
+import { getToken } from 'next-auth/jwt'
 
-async function handler(req, res) {
-  const userId = parseInt(req.user.userId)
+export default async function handler(req, res) {
+  let userId = null
+  let isAdmin = false
+
+  // Try NextAuth JWT token first
+  try {
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+    if (token) {
+      userId = token.sub // This is the user ID from NextAuth
+      isAdmin = token.isAdmin || false
+      console.log('NextAuth user authenticated:', { userId, isAdmin })
+    }
+  } catch (error) {
+    console.log('NextAuth token not found, trying legacy JWT...')
+  }
+
+  // Fallback to legacy JWT
+  if (!userId) {
+    const authHeader = req.headers.authorization
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const jwtToken = authHeader.replace('Bearer ', '')
+      const decoded = verifyToken(jwtToken)
+      if (decoded) {
+        userId = decoded.userId
+        isAdmin = decoded.isAdmin || false
+        console.log('Legacy JWT user authenticated:', { userId, isAdmin })
+      }
+    }
+  }
+
+  if (!userId) {
+    console.log('No authentication found')
+    return res.status(401).json({ message: 'Authentication required' })
+  }
 
   if (req.method === 'GET') {
     try {
@@ -10,7 +43,7 @@ async function handler(req, res) {
         where: {
           members: {
             some: {
-              userId
+              userId: userId
             }
           }
         },
@@ -36,7 +69,7 @@ async function handler(req, res) {
         name: group.name,
         description: group.description,
         ownerId: group.ownerId,
-        owner: group.owner.username,
+        owner: group.owner?.username || 'Unknown',
         createdAt: group.createdAt,
         memberCount: group._count.members,
         activityCount: group._count.activities
@@ -53,6 +86,8 @@ async function handler(req, res) {
         return res.status(400).json({ message: 'Group name is required' })
       }
 
+      console.log('Creating group for user:', userId)
+
       const group = await prisma.group.create({
         data: {
           name,
@@ -60,7 +95,7 @@ async function handler(req, res) {
           ownerId: userId,
           members: {
             create: {
-              userId,
+              userId: userId,
               isAdmin: true
             }
           }
@@ -79,6 +114,8 @@ async function handler(req, res) {
         }
       })
 
+      console.log('Group created successfully:', group.id)
+
       res.status(201).json({
         message: 'Group created successfully',
         group: {
@@ -86,7 +123,7 @@ async function handler(req, res) {
           name: group.name,
           description: group.description,
           ownerId: group.ownerId,
-          owner: group.owner.username,
+          owner: group.owner?.username || 'Unknown',
           createdAt: group.createdAt,
           members: group.members.map(member => ({
             id: member.user.id,
@@ -104,5 +141,3 @@ async function handler(req, res) {
     res.status(405).json({ message: 'Method not allowed' })
   }
 }
-
-export default requireAuth(handler)
