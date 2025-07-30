@@ -4,6 +4,7 @@ import { signIn, getSession } from 'next-auth/react'
 import { useAuth } from '../lib/useAuth'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
+import { getServerSideProps as getServerSidePropsBase } from 'next-auth/react'
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -31,7 +32,7 @@ export default function Login() {
     setLoading(true)
 
     try {
-      // Use NextAuth for all users (no more admin/regular distinction)
+      // Use NextAuth for all users
       const result = await signIn('credentials', {
         username: formData.username,
         password: formData.password,
@@ -46,9 +47,14 @@ export default function Login() {
         }
       } else if (result?.ok) {
         toast.success('Login successful!')
-        router.push(callbackUrl || '/dashboard')
+        // Get the session to check user data
+        const session = await getSession()
+        if (session) {
+          router.push(callbackUrl || '/dashboard')
+        }
       }
     } catch (error) {
+      console.error('Login error:', error)
       toast.error(error.message || 'Login failed')
     } finally {
       setLoading(false)
@@ -56,9 +62,10 @@ export default function Login() {
   }
 
   const handleGoogleLogin = async () => {
-    // Only show Google login if configured
-    if (!process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED) {
-      toast.error('Google login is not configured')
+    // Check if Google OAuth is enabled
+    const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED === 'true'
+    if (!googleEnabled) {
+      toast.error('Google login is not available')
       return
     }
 
@@ -151,7 +158,7 @@ export default function Login() {
           </div>
 
           {/* Google Sign In Button - Only show if configured */}
-          {process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED && (
+          {process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED === 'true' && (
             <div>
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -208,4 +215,22 @@ export default function Login() {
       </div>
     </div>
   )
+}
+
+// Redirect if already authenticated
+export async function getServerSideProps(context) {
+  const session = await getSession(context)
+  
+  if (session) {
+    return {
+      redirect: {
+        destination: '/dashboard',
+        permanent: false,
+      },
+    }
+  }
+
+  return {
+    props: {},
+  }
 }

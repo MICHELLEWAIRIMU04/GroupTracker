@@ -53,7 +53,6 @@ export default NextAuth({
             id: user.id,
             email: user.email,
             username: user.username,
-            isAdmin: user.isAdmin,
             image: user.image,
           }
         } catch (error) {
@@ -64,12 +63,12 @@ export default NextAuth({
     })
   ],
   session: {
-    strategy: 'jwt'
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
     async jwt({ token, user, account }) {
       if (user) {
-        token.isAdmin = user.isAdmin
         token.username = user.username
       }
       
@@ -90,7 +89,6 @@ export default NextAuth({
     async session({ session, token }) {
       if (token) {
         session.user.id = token.sub
-        session.user.isAdmin = token.isAdmin
         session.user.username = token.username
       }
       return session
