@@ -3,7 +3,7 @@ import { verifyToken } from '../../../../../lib/auth'
 import { getToken } from 'next-auth/jwt'
 
 export default async function handler(req, res) {
-  const { id: activityId } = req.query
+  const { activityId } = req.query
   let userId = null
   let isAdmin = false
 
