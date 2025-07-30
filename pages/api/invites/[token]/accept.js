@@ -1,5 +1,5 @@
-import { prisma } from '../../../../lib/prisma'
-import { verifyToken } from '../../../../lib/auth'
+import { prisma } from '@/lib/prisma'
+import { verifyToken } from '@/lib/auth'
 import { getToken } from 'next-auth/jwt'
 
 export default async function handler(req, res) {
