@@ -1,135 +1,98 @@
-import nodemailer from 'nodemailer'
-import { randomBytes } from 'crypto'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
+import Link from 'next/link'
+import axios from 'axios'
 
-const transporter = nodemailer.createTransporter({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: process.env.SMTP_PORT || 587,
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-})
+export default function VerifyEmail() {
+  const [status, setStatus] = useState('verifying')
+  const [message, setMessage] = useState('')
+  const router = useRouter()
+  const { token } = router.query
 
-export function generateVerificationToken() {
-  return randomBytes(32).toString('hex')
-}
+  useEffect(() => {
+    if (token) {
+      verifyEmail()
+    }
+  }, [token])
 
-export async function sendVerificationEmail(email, token, username) {
-  const verificationUrl = `${process.env.NEXTAUTH_URL}/auth/verify-email?token=${token}`
-  
-  const mailOptions = {
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    to: email,
-    subject: 'Verify Your Email - Group Activity Tracker',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Email Verification</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #3b82f6; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
-          .button { display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-          .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 14px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Welcome to Group Activity Tracker!</h1>
+  const verifyEmail = async () => {
+    try {
+      const response = await axios.get(`/api/auth/verify-email?token=${token}`)
+      setStatus('success')
+      setMessage(response.data.message)
+    } catch (error) {
+      setStatus('error')
+      setMessage(error.response?.data?.message || 'Email verification failed')
+    }
+  }
+
+  if (status === 'verifying') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-md w-full text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Verifying your email...</h2>
+          <p className="text-gray-600 dark:text-gray-400">Please wait while we verify your email address.</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (status === 'success') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-md w-full text-center space-y-6">
+          <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto">
+            <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+            </svg>
           </div>
-          <div class="content">
-            <h2>Hi ${username}!</h2>
-            <p>Thank you for registering with Group Activity Tracker. To complete your registration and verify that this email address belongs to you, please click the button below:</p>
-            
-            <div style="text-align: center;">
-              <a href="${verificationUrl}" class="button">Verify Email Address</a>
-            </div>
-            
-            <p>Or copy and paste this link into your browser:</p>
-            <p style="word-break: break-all; background: #e5e7eb; padding: 10px; border-radius: 4px;">${verificationUrl}</p>
-            
-            <p><strong>This verification link will expire in 24 hours.</strong></p>
-            
-            <p>If you didn't create an account with us, please ignore this email.</p>
-            
-            <p>Best regards,<br>The Group Activity Tracker Team</p>
-          </div>
-          <div class="footer">
-            <p>This is an automated email. Please do not reply to this message.</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Email Verified!</h2>
+          <p className="text-gray-600 dark:text-gray-400">{message}</p>
+          <div className="space-y-3">
+            <Link
+              href="/login"
+              className="block w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Sign In Now
+            </Link>
+            <Link
+              href="/dashboard"
+              className="block w-full text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+            >
+              Go to Dashboard
+            </Link>
           </div>
         </div>
-      </body>
-      </html>
-    `
+      </div>
+    )
   }
 
-  try {
-    await transporter.sendMail(mailOptions)
-    console.log('Verification email sent to:', email)
-    return true
-  } catch (error) {
-    console.error('Error sending verification email:', error)
-    throw new Error('Failed to send verification email')
-  }
-}
-
-export async function sendWelcomeEmail(email, username) {
-  const mailOptions = {
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    to: email,
-    subject: 'Welcome to Group Activity Tracker!',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Welcome!</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #10b981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-          .content { background: #f0fdf4; padding: 30px; border-radius: 0 0 8px 8px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🎉 Welcome Aboard!</h1>
-          </div>
-          <div class="content">
-            <h2>Hi ${username}!</h2>
-            <p>Your email has been successfully verified and your account is now active!</p>
-            
-            <p>You can now:</p>
-            <ul>
-              <li>Create and join groups</li>
-              <li>Track activities and contributions</li>
-              <li>Collaborate with your team</li>
-              <li>Monitor progress in real-time</li>
-            </ul>
-            
-            <p><a href="${process.env.NEXTAUTH_URL}/dashboard" style="color: #3b82f6;">Start exploring your dashboard →</a></p>
-            
-            <p>If you have any questions, feel free to reach out to our support team.</p>
-            
-            <p>Happy tracking!<br>The Group Activity Tracker Team</p>
-          </div>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="max-w-md w-full text-center space-y-6">
+        <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto">
+          <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </div>
-      </body>
-      </html>
-    `
-  }
-
-  try {
-    await transporter.sendMail(mailOptions)
-    console.log('Welcome email sent to:', email)
-  } catch (error) {
-    console.error('Error sending welcome email:', error)
-  }
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Verification Failed</h2>
+        <p className="text-gray-600 dark:text-gray-400">{message}</p>
+        <div className="space-y-3">
+          <Link
+            href="/register"
+            className="block w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Try Again
+          </Link>
+          <Link
+            href="/login"
+            className="block w-full text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+          >
+            Back to Login
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
 }
