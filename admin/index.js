@@ -1,3 +1,4 @@
+//Admn/index.js
 import { useAuth } from '../../lib/useAuth'
 import ProtectedRoute from '../../components/ProtectedRoute'
 import AdminRoute from '../../components/AdminRoute'

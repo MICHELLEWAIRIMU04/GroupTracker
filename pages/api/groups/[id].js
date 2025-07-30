@@ -155,6 +155,15 @@ export default async function handler(req, res) {
       })
     } catch (error) {
       console.error('Get group details error:', error)
+      
+      // Handle different types of database errors
+      if (error.code === 'P1001') {
+        return res.status(503).json({ 
+          message: 'Database temporarily unavailable. Please try again in a moment.',
+          error: 'DATABASE_CONNECTION_ERROR'
+        })
+      }
+      
       res.status(500).json({ message: 'Failed to retrieve group details' })
     }
   } else if (req.method === 'DELETE') {
@@ -179,6 +188,15 @@ export default async function handler(req, res) {
       res.json({ message: 'Group deleted successfully' })
     } catch (error) {
       console.error('Delete group error:', error)
+      
+      // Handle different types of database errors
+      if (error.code === 'P1001') {
+        return res.status(503).json({ 
+          message: 'Database temporarily unavailable. Please try again in a moment.',
+          error: 'DATABASE_CONNECTION_ERROR'
+        })
+      }
+      
       res.status(500).json({ message: 'Failed to delete group' })
     }
   } else {

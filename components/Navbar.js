@@ -66,18 +66,6 @@ export default function Navbar() {
               >
                 Groups
               </Link>
-              {currentUser.isAdmin && (
-                <Link 
-                  href="/admin" 
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    router.pathname.startsWith('/admin') 
-                      ? 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300' 
-                      : 'text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400'
-                  }`}
-                >
-                  Admin
-                </Link>
-              )}
             </div>
           </div>
           
@@ -121,9 +109,6 @@ export default function Navbar() {
                   <div className="text-gray-700 dark:text-gray-300 font-medium">
                     {currentUser.username || currentUser.name || 'User'}
                   </div>
-                  {currentUser.isAdmin && (
-                    <div className="text-xs text-red-600 dark:text-red-400">Admin</div>
-                  )}
                 </div>
               </div>
               <button
@@ -176,19 +161,6 @@ export default function Navbar() {
               >
                 Groups
               </Link>
-              {currentUser.isAdmin && (
-                <Link
-                  href="/admin"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    router.pathname.startsWith('/admin')
-                      ? 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300'
-                      : 'text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400'
-                  }`}
-                >
-                  Admin
-                </Link>
-              )}
               
               {/* Mobile User Info */}
               <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
@@ -213,9 +185,6 @@ export default function Navbar() {
                     <div className="text-sm text-gray-500 dark:text-gray-400">
                       {currentUser.email}
                     </div>
-                    {currentUser.isAdmin && (
-                      <div className="text-xs text-red-600 dark:text-red-400">Admin</div>
-                    )}
                   </div>
                 </div>
                 <button

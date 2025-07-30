@@ -43,7 +43,6 @@ model User {
   email                 String          @unique
   emailVerified         DateTime?       @map("email_verified")
   password              String?
-  isAdmin               Boolean         @default(false) @map("is_admin")
   image                 String?
   createdAt             DateTime        @default(now()) @map("created_at")
   updatedAt             DateTime        @updatedAt @map("updated_at")
@@ -55,6 +54,7 @@ model User {
   contributions         Contribution[]
   ownedGroups          Group[]         @relation("GroupOwner")
   groups               GroupMember[]
+  sentInvites          GroupInvite[]   @relation("InviteSender")
   
   @@map("users")
 }
@@ -79,6 +79,7 @@ model Group {
   owner       User          @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members     GroupMember[]
   activities  Activity[]
+  invites     GroupInvite[]
   
   @@map("groups")
 }
@@ -94,6 +95,24 @@ model GroupMember {
   
   @@id([userId, groupId])
   @@map("group_members")
+}
+
+model GroupInvite {
+  id          Int      @id @default(autoincrement())
+  email       String
+  groupId     Int      @map("group_id")
+  invitedById String   @map("invited_by_id")
+  isAdmin     Boolean  @default(false) @map("is_admin")
+  token       String   @unique
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  acceptedAt  DateTime? @map("accepted_at")
+  
+  group       Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  invitedBy   User     @relation("InviteSender", fields: [invitedById], references: [id], onDelete: Cascade)
+  
+  @@unique([email, groupId])
+  @@map("group_invites")
 }
 
 model Activity {

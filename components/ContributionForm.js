@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMutation, useQueryClient } from 'react-query'
 import axios from 'axios'
 import toast from 'react-hot-toast'
@@ -8,12 +8,18 @@ const createContribution = async (contributionData) => {
   return response.data
 }
 
+const updateContribution = async ({ id, contributionData }) => {
+  const response = await axios.put(`/api/contributions/${id}`, contributionData)
+  return response.data
+}
+
 export default function ContributionForm({ 
   activityId, 
   groupMembers = [], 
   onClose, 
   onSuccess,
-  className = ""
+  className = "",
+  editingContribution = null // Pass this when editing
 }) {
   const queryClient = useQueryClient()
   const [formData, setFormData] = useState({
@@ -23,6 +29,19 @@ export default function ContributionForm({
     currency: 'USD',
     description: ''
   })
+
+  // Initialize form with editing data
+  useEffect(() => {
+    if (editingContribution) {
+      setFormData({
+        contributorId: editingContribution.userId.toString(),
+        contributionType: editingContribution.contributionType,
+        amount: editingContribution.amount.toString(),
+        currency: editingContribution.currency || 'USD',
+        description: editingContribution.description || ''
+      })
+    }
+  }, [editingContribution])
 
   const createContributionMutation = useMutation(createContribution, {
     onSuccess: (data) => {
@@ -37,13 +56,40 @@ export default function ContributionForm({
     }
   })
 
+  const updateContributionMutation = useMutation(updateContribution, {
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['activity'])
+      queryClient.invalidateQueries(['contributions'])
+      toast.success('Contribution updated successfully!')
+      onSuccess?.(data)
+      onClose?.()
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update contribution')
+    }
+  })
+
   const handleSubmit = (e) => {
     e.preventDefault()
-    createContributionMutation.mutate({
+    
+    const contributionData = {
       ...formData,
       activityId: parseInt(activityId),
       amount: parseFloat(formData.amount)
-    })
+    }
+
+    if (editingContribution) {
+      // Remove fields that shouldn't be updated
+      delete contributionData.contributorId
+      delete contributionData.activityId
+      
+      updateContributionMutation.mutate({
+        id: editingContribution.id,
+        contributionData
+      })
+    } else {
+      createContributionMutation.mutate(contributionData)
+    }
   }
 
   const currencies = [
@@ -57,17 +103,20 @@ export default function ContributionForm({
     { code: 'CHF', symbol: 'Fr', name: 'Swiss Franc' }
   ]
 
+  const isEditing = !!editingContribution
+  const isLoading = isEditing ? updateContributionMutation.isLoading : createContributionMutation.isLoading
+
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-lg shadow border dark:border-gray-700 ${className}`}>
       <div className="p-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Add Contribution
+            {isEditing ? 'Edit Contribution' : 'Add Contribution'}
           </h3>
           {onClose && (
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -77,28 +126,30 @@ export default function ContributionForm({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Contributor Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Contributor *
-            </label>
-            <select
-              required
-              value={formData.contributorId}
-              onChange={(e) => setFormData({...formData, contributorId: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Select a group member</option>
-              {groupMembers.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.username} ({member.email})
-                  {member.isAdmin && ' - Admin'}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Contributor Selection - Only show when creating new contribution */}
+          {!isEditing && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Contributor *
+              </label>
+              <select
+                required
+                value={formData.contributorId}
+                onChange={(e) => setFormData({...formData, contributorId: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Select a group member</option>
+                {groupMembers.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.username} ({member.email})
+                    {member.isAdmin && ' - Admin'}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          {/* Contribution Type */}
+          {/* Contribution Type - Disable when editing */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Contribution Type
@@ -108,13 +159,14 @@ export default function ContributionForm({
                 formData.contributionType === 'money'
                   ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                   : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-              }`}>
+              } ${isEditing ? 'opacity-50 cursor-not-allowed' : ''}`}>
                 <input
                   type="radio"
                   name="contributionType"
                   value="money"
                   checked={formData.contributionType === 'money'}
-                  onChange={(e) => setFormData({...formData, contributionType: e.target.value})}
+                  onChange={(e) => !isEditing && setFormData({...formData, contributionType: e.target.value})}
+                  disabled={isEditing}
                   className="sr-only"
                 />
                 <div className="flex items-center">
@@ -128,13 +180,14 @@ export default function ContributionForm({
                 formData.contributionType === 'time'
                   ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                   : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-              }`}>
+              } ${isEditing ? 'opacity-50 cursor-not-allowed' : ''}`}>
                 <input
                   type="radio"
                   name="contributionType"
                   value="time"
                   checked={formData.contributionType === 'time'}
-                  onChange={(e) => setFormData({...formData, contributionType: e.target.value})}
+                  onChange={(e) => !isEditing && setFormData({...formData, contributionType: e.target.value})}
+                  disabled={isEditing}
                   className="sr-only"
                 />
                 <div className="flex items-center">
@@ -203,16 +256,16 @@ export default function ContributionForm({
           <div className="flex space-x-3 pt-4">
             <button
               type="submit"
-              disabled={createContributionMutation.isLoading}
+              disabled={isLoading}
               className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {createContributionMutation.isLoading ? (
+              {isLoading ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Adding...
+                  {isEditing ? 'Updating...' : 'Adding...'}
                 </div>
               ) : (
-                'Add Contribution'
+                isEditing ? 'Update Contribution' : 'Add Contribution'
               )}
             </button>
             {onClose && (

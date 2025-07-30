@@ -11,7 +11,7 @@ async function main() {
     await prisma.$connect()
     console.log('✅ Database connection successful')
     
-    // Create default admin user
+    // Create default admin user (no longer has global isAdmin flag)
     const existingAdmin = await prisma.user.findUnique({
       where: { username: 'admin' }
     })
@@ -25,7 +25,6 @@ async function main() {
           username: 'admin',
           email: 'admin@example.com',
           password: hashedPassword,
-          isAdmin: true,
           emailVerified: new Date() // Mark as verified
         }
       })
@@ -52,12 +51,11 @@ async function main() {
           username: 'john_doe',
           email: 'john@example.com',
           password: hashedPassword,
-          isAdmin: false,
           emailVerified: new Date() // Mark as verified
         }
       })
 
-      // Create a sample group
+      // Create a sample group with admin as owner
       const sampleGroup = await prisma.group.create({
         data: {
           name: 'Sample Project Team',
@@ -65,8 +63,8 @@ async function main() {
           ownerId: admin.id,
           members: {
             create: [
-              { userId: admin.id, isAdmin: true },
-              { userId: sampleUser.id, isAdmin: false }
+              { userId: admin.id, isAdmin: true }, // Owner is automatically admin
+              { userId: sampleUser.id, isAdmin: false } // Regular member
             ]
           }
         }
@@ -120,6 +118,11 @@ async function main() {
     console.log(`   Contributions: ${totalContributions}`)
 
     console.log('🎉 Database initialization completed!')
+    console.log('📝 Key Changes:')
+    console.log('   • Removed global isAdmin field')
+    console.log('   • Admin privileges are now group-specific')
+    console.log('   • Group owners automatically get admin rights')
+    console.log('   • All users use the same dashboard')
     
   } catch (error) {
     console.error('❌ Database initialization failed:', error)
