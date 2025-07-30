@@ -1,7 +1,8 @@
-import { prisma } from '@/lib/prisma'
-import { verifyToken } from '@/lib/auth'
-import { getToken } from 'next-auth/jwt'
+import { prisma } from '../../../../../lib/prisma'
+import { verifyToken } from '../../../../../lib/auth'
 import { sendGroupInviteEmail, generateInviteToken } from '../../../../../lib/email'
+import { getToken } from 'next-auth/jwt'
+
 
 export default async function handler(req, res) {
   const { id: groupId } = req.query
