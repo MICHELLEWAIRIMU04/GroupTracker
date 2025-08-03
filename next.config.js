@@ -1,67 +1,42 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   
-  // Environment variables that should be available on the client side
+  // Environment variables configuration
   env: {
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+    CUSTOM_KEY: process.env.CUSTOM_KEY,
+  },
+  
+  // Ensure environment variables are available during build
+  serverRuntimeConfig: {
+    // Will only be available on the server side
+    DATABASE_URL: process.env.DATABASE_URL,
+    JWT_SECRET: process.env.JWT_SECRET,
+  },
+  
+  publicRuntimeConfig: {
+    // Will be available on both server and client
+    // Only put non-sensitive data here
   },
 
-  // Public runtime config
-  publicRuntimeConfig: {
-    googleOauthEnabled: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED === 'true',
+  // Webpack configuration for better bundle handling
+  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+    // Ignore node_modules that cause issues in serverless
+    if (isServer) {
+      config.externals.push('_http_common')
+    }
+    
+    return config
   },
 
   // Experimental features for better performance
   experimental: {
-    // Enable optimized package imports
-    optimizePackageImports: ['react-query', 'axios', 'react-hot-toast'],
+    // Improve cold start performance
+    serverComponentsExternalPackages: ['@prisma/client'],
   },
 
-  // Security headers
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
-          },
-        ],
-      },
-    ]
-  },
-
-  // Optimize images
-  images: {
-    domains: ['lh3.googleusercontent.com'], // For Google profile images
-    formats: ['image/webp', 'image/avif'],
-  },
-
-  // Webpack configuration for better bundling
-  webpack: (config, { isServer }) => {
-    // Optimize bundle size
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        path: false,
-        crypto: false,
-      }
-    }
-
-    return config
-  },
+  // Output configuration for Vercel
+  output: 'standalone',
 }
 
 module.exports = nextConfig

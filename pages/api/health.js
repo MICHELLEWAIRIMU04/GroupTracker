@@ -7,32 +7,37 @@ export default async function handler(req, res) {
 
   try {
     const startTime = Date.now()
+    
+    // Check environment variables
+    const envCheck = {
+      DATABASE_URL: !!process.env.DATABASE_URL,
+      NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
+      NEXTAUTH_URL: !!process.env.NEXTAUTH_URL,
+      JWT_SECRET: !!process.env.JWT_SECRET,
+      NODE_ENV: process.env.NODE_ENV,
+    }
+
+    // Check database connection
     const dbHealth = await checkDatabaseConnection()
     const responseTime = Date.now() - startTime
 
-    if (dbHealth.connected) {
-      res.status(200).json({
-        status: 'healthy',
+    const isHealthy = dbHealth.connected && envCheck.DATABASE_URL && envCheck.NEXTAUTH_SECRET && envCheck.JWT_SECRET
+
+    const response = {
+      status: isHealthy ? 'healthy' : 'unhealthy',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      checks: {
         database: {
-          connected: true,
-          responseTime: `${responseTime}ms`
-        },
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV
-      })
-    } else {
-      res.status(503).json({
-        status: 'unhealthy',
-        database: {
-          connected: false,
+          connected: dbHealth.connected,
           error: dbHealth.error,
-          code: dbHealth.code,
           responseTime: `${responseTime}ms`
         },
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV
-      })
+        environment: envCheck
+      }
     }
+
+    res.status(isHealthy ? 200 : 503).json(response)
   } catch (error) {
     console.error('Health check failed:', error)
     res.status(500).json({
