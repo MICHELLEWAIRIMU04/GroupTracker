@@ -85,6 +85,31 @@ export default async function handler(req, res) {
         return res.status(404).json({ message: 'Group not found' })
       }
 
+      // Get all users who have made contributions but are no longer members
+      const contributorIds = new Set()
+      group.activities.forEach(activity => {
+        activity.contributions.forEach(contribution => {
+          contributorIds.add(contribution.userId)
+        })
+      })
+
+      const currentMemberIds = new Set(group.members.map(member => member.userId))
+      const formerContributorIds = Array.from(contributorIds).filter(id => !currentMemberIds.has(id))
+
+      // Fetch former members who made contributions
+      const formerMembers = await prisma.user.findMany({
+        where: {
+          id: {
+            in: formerContributorIds
+          }
+        },
+        select: {
+          id: true,
+          username: true,
+          email: true
+        }
+      })
+
       // Process activities with contribution summaries
       const processedActivities = group.activities.map(activity => {
         const moneyContributions = activity.contributions.filter(c => c.contributionType === 'money')
@@ -123,15 +148,20 @@ export default async function handler(req, res) {
           recentContributions: activity.contributions
             .sort((a, b) => new Date(b.date) - new Date(a.date))
             .slice(0, 3)
-            .map(contrib => ({
-              id: contrib.id,
-              user: contrib.user.username,
-              type: contrib.contributionType,
-              amount: contrib.amount,
-              currency: contrib.currency,
-              description: contrib.description,
-              date: contrib.date
-            }))
+            .map(contrib => {
+              const isFormerMember = formerContributorIds.includes(contrib.userId)
+              return {
+                id: contrib.id,
+                user: contrib.user.username,
+                userId: contrib.userId,
+                type: contrib.contributionType,
+                amount: contrib.amount,
+                currency: contrib.currency,
+                description: contrib.description,
+                date: contrib.date,
+                isFormerMember: isFormerMember
+              }
+            })
         }
       })
 
@@ -148,6 +178,12 @@ export default async function handler(req, res) {
           email: member.user.email,
           isAdmin: member.isAdmin,
           joinedAt: member.joinedAt
+        })),
+        formerMembers: formerMembers.map(member => ({
+          id: member.id,
+          username: member.username,
+          email: member.email,
+          isFormerMember: true
         })),
         activities: processedActivities,
         userIsAdmin: groupMember.isAdmin,

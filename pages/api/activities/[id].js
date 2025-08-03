@@ -95,6 +95,11 @@ export default async function handler(req, res) {
       const hours = Math.floor(totalTimeMinutes / 60)
       const minutes = Math.floor(totalTimeMinutes % 60)
 
+      // Get all users who have made contributions but are no longer members
+      const contributorIds = new Set(activity.contributions.map(c => c.userId))
+      const currentMemberIds = new Set(activity.group.members.map(member => member.userId))
+      const formerContributorIds = Array.from(contributorIds).filter(id => !currentMemberIds.has(id))
+
       res.json({
         id: activity.id,
         name: activity.name,
@@ -110,17 +115,21 @@ export default async function handler(req, res) {
             isAdmin: member.isAdmin
           }))
         },
-        contributions: activity.contributions.map(contrib => ({
-          id: contrib.id,
-          userId: contrib.userId,
-          user: contrib.user.username,
-          contributionType: contrib.contributionType,
-          amount: contrib.amount,
-          currency: contrib.currency,
-          description: contrib.description,
-          date: contrib.date,
-          createdAt: contrib.createdAt
-        })),
+        contributions: activity.contributions.map(contrib => {
+          const isFormerMember = formerContributorIds.includes(contrib.userId)
+          return {
+            id: contrib.id,
+            userId: contrib.userId,
+            user: contrib.user.username,
+            contributionType: contrib.contributionType,
+            amount: contrib.amount,
+            currency: contrib.currency,
+            description: contrib.description,
+            date: contrib.date,
+            createdAt: contrib.createdAt,
+            isFormerMember: isFormerMember
+          }
+        }),
         statistics: {
           contributionCounts: {
             money: moneyContributions.length,

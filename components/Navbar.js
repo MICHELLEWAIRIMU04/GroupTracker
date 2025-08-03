@@ -41,7 +41,7 @@ export default function Navbar() {
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center space-x-4">
             <Link href="/dashboard" className="text-xl font-bold text-blue-600 dark:text-blue-400">
-              Activity Tracker
+              TrackEm
             </Link>
             
             {/* Desktop Menu */}

@@ -317,6 +317,33 @@ function GroupDetailsContent() {
                       </div>
                     </div>
                     
+                    {/* Recent Contributions with Former Member Status */}
+                    {activity.recentContributions?.length > 0 && (
+                      <div className="mt-3 text-sm">
+                        <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Recent contributions:</h4>
+                        <div className="space-y-1">
+                          {activity.recentContributions.map((contrib) => (
+                            <div key={contrib.id} className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
+                              <div className="flex items-center space-x-2">
+                                <span className="font-medium">{contrib.user}</span>
+                                {contrib.isFormerMember && (
+                                  <span className="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded text-xs">
+                                    no longer member
+                                  </span>
+                                )}
+                              </div>
+                              <span>
+                                {contrib.type === 'money' 
+                                  ? `${contrib.currency} ${contrib.amount}`
+                                  : `${contrib.amount} min`
+                                }
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
                       Created: {new Date(activity.createdAt).toLocaleDateString()}
                     </div>

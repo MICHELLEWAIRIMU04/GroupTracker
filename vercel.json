@@ -14,10 +14,5 @@
       "source": "/api/(.*)",
       "destination": "/api/$1"
     }
-  ],
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "NEXTAUTH_SECRET": "@nextauth_secret",
-    "JWT_SECRET": "@jwt_secret"
-  }
+  ]
 }

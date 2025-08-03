@@ -295,7 +295,7 @@ export default function MembersList({ group, members, isAdmin, isOwner }) {
         </div>
       )}
 
-      {/* Members Grid */}
+      {/* Current Members Grid */}
       <div className="space-y-3">
         {members?.map((member) => (
           <div key={member.id} className="flex items-center justify-between p-4 border dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
@@ -352,6 +352,35 @@ export default function MembersList({ group, members, isAdmin, isOwner }) {
           </div>
         ))}
       </div>
+
+      {/* Former Members Section (Contributors who left) */}
+      {group?.formerMembers?.length > 0 && (
+        <div className="mt-6 p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/30">
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+            Former Contributors ({group.formerMembers.length})
+          </h3>
+          <div className="space-y-2">
+            {group.formerMembers.map((member) => (
+              <div key={member.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600/50">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-gray-300 dark:bg-gray-500 rounded-full flex items-center justify-center">
+                    <span className="text-gray-600 dark:text-gray-300 font-medium text-sm">
+                      {member.username.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-700 dark:text-gray-300">{member.username}</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Made contributions but left the group</p>
+                  </div>
+                </div>
+                <span className="bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400 text-xs px-2 py-1 rounded">
+                  Former member
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {members?.length === 0 && (
         <div className="text-center py-8">

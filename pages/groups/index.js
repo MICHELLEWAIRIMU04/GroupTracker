@@ -122,16 +122,6 @@ function GroupsContent() {
         </button>
       </div>
 
-      {/* Debug info for development */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-xs">
-          <strong>Debug:</strong> 
-          {session?.user ? ` NextAuth User: ${session.user.username || session.user.email} (ID: ${session.user.id})` : ''}
-          {user && !session?.user ? ` Legacy User: ${user.username} (ID: ${user.id})` : ''}
-          {!currentUser ? ' No user found' : ''}
-        </div>
-      )}
-
       {showCreateForm && (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border dark:border-gray-700">
           <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Create New Group</h2>

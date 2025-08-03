@@ -57,13 +57,12 @@ export default async function handler(req, res) {
       const verificationToken = generateVerificationToken()
       const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
-      // Create user with unverified email
+      // Create user with unverified email (removed isAdmin field)
       const user = await prisma.user.create({
         data: {
           username,
           email,
           password: hashedPassword,
-          isAdmin: false,
           emailVerificationToken: verificationToken,
           emailVerificationExpires: verificationExpires
         }
@@ -98,7 +97,6 @@ export default async function handler(req, res) {
           username,
           email,
           password: hashedPassword,
-          isAdmin: false,
           emailVerified: new Date(), // Mark as verified since no email verification
           emailVerificationToken: null,
           emailVerificationExpires: null

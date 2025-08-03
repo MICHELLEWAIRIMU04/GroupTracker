@@ -1,3 +1,4 @@
+require('dotenv').config()
 const { PrismaClient } = require('@prisma/client')
 const bcrypt = require('bcryptjs')
 
@@ -11,7 +12,7 @@ async function main() {
     await prisma.$connect()
     console.log('✅ Database connection successful')
     
-    // Create default admin user (no longer has global isAdmin flag)
+    // Create default admin user
     const existingAdmin = await prisma.user.findUnique({
       where: { username: 'admin' }
     })
@@ -25,7 +26,7 @@ async function main() {
           username: 'admin',
           email: 'admin@example.com',
           password: hashedPassword,
-          emailVerified: new Date() // Mark as verified
+          emailVerified: new Date() // Mark as verified for development
         }
       })
       
@@ -51,7 +52,7 @@ async function main() {
           username: 'john_doe',
           email: 'john@example.com',
           password: hashedPassword,
-          emailVerified: new Date() // Mark as verified
+          emailVerified: new Date() // Mark as verified for development
         }
       })
 
@@ -118,20 +119,23 @@ async function main() {
     console.log(`   Contributions: ${totalContributions}`)
 
     console.log('🎉 Database initialization completed!')
-    console.log('📝 Key Changes:')
-    console.log('   • Removed global isAdmin field')
-    console.log('   • Admin privileges are now group-specific')
-    console.log('   • Group owners automatically get admin rights')
-    console.log('   • All users use the same dashboard')
+    
+    console.log('\n📝 Demo Credentials:')
+    console.log('   Admin: admin / admin123')
+    console.log('   User: john_doe / password123')
     
   } catch (error) {
     console.error('❌ Database initialization failed:', error)
     
     if (error.code === 'P1001') {
       console.error('🔧 Connection Error - Check:')
-      console.error('   1. Your DATABASE_URL in .env.local')
+      console.error('   1. Your DATABASE_URL in .env')
       console.error('   2. Your Neon database is running')
       console.error('   3. Your internet connection')
+    } else if (error.code === 'P2002') {
+      console.error('🔧 Unique constraint error - data might already exist')
+    } else if (error.message.includes('does not exist')) {
+      console.error('🔧 Table does not exist - run: npx prisma db push')
     }
     
     throw error

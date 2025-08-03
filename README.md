@@ -1,4 +1,4 @@
-# Group Activity Tracker - Next.js Application
+# Group TrackEm - Next.js Application
 
 A comprehensive web application for tracking group activities and contributions, built with Next.js and deployed on Vercel.
 

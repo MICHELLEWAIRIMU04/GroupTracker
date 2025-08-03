@@ -49,7 +49,18 @@ export default async function handler(req, res) {
               select: { id: true, username: true }
             },
             activity: {
-              select: { id: true, name: true, groupId: true }
+              select: { 
+                id: true, 
+                name: true, 
+                groupId: true,
+                group: {
+                  include: {
+                    members: {
+                      select: { userId: true }
+                    }
+                  }
+                }
+              }
             }
           },
           orderBy: { date: 'desc' }
@@ -76,26 +87,43 @@ export default async function handler(req, res) {
               select: { id: true, username: true }
             },
             activity: {
-              select: { id: true, name: true, groupId: true }
+              select: { 
+                id: true, 
+                name: true, 
+                groupId: true,
+                group: {
+                  include: {
+                    members: {
+                      select: { userId: true }
+                    }
+                  }
+                }
+              }
             }
           },
           orderBy: { date: 'desc' }
         })
       }
 
-      res.json(contributions.map(contrib => ({
-        id: contrib.id,
-        userId: contrib.userId,
-        user: contrib.user.username,
-        activityId: contrib.activityId,
-        activity: contrib.activity.name,
-        contributionType: contrib.contributionType,
-        amount: contrib.amount,
-        currency: contrib.contributionType === 'money' ? contrib.currency : undefined,
-        description: contrib.description,
-        date: contrib.date,
-        createdAt: contrib.createdAt
-      })))
+      res.json(contributions.map(contrib => {
+        const currentMemberIds = contrib.activity.group.members.map(m => m.userId)
+        const isFormerMember = !currentMemberIds.includes(contrib.userId)
+        
+        return {
+          id: contrib.id,
+          userId: contrib.userId,
+          user: contrib.user.username,
+          activityId: contrib.activityId,
+          activity: contrib.activity.name,
+          contributionType: contrib.contributionType,
+          amount: contrib.amount,
+          currency: contrib.contributionType === 'money' ? contrib.currency : undefined,
+          description: contrib.description,
+          date: contrib.date,
+          createdAt: contrib.createdAt,
+          isFormerMember: isFormerMember
+        }
+      }))
     } catch (error) {
       console.error('Get contributions error:', error)
       res.status(500).json({ message: 'Failed to retrieve contributions' })
@@ -185,7 +213,8 @@ export default async function handler(req, res) {
           currency: contribution.currency,
           description: contribution.description,
           date: contribution.date,
-          createdAt: contribution.createdAt
+          createdAt: contribution.createdAt,
+          isFormerMember: false // New contributions are always from current members
         }
       })
     } catch (error) {

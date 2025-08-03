@@ -306,7 +306,14 @@ function ActivityDetailsContent() {
                         </span>
                       </div>
                       <div>
-                        <h4 className="font-medium text-gray-900 dark:text-white">{contribution.user}</h4>
+                        <div className="flex items-center space-x-2">
+                          <h4 className="font-medium text-gray-900 dark:text-white">{contribution.user}</h4>
+                          {contribution.isFormerMember && (
+                            <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs px-2 py-1 rounded">
+                              no longer member
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           {new Date(contribution.date).toLocaleDateString()} at {new Date(contribution.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                         </p>
