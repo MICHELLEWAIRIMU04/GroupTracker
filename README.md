@@ -33,4 +33,4 @@ A comprehensive web application for tracking group activities and contributions,
 1. Clone the repository:
 ```bash
 git clone <your-repo-url>
-cd group-activity-tracker
+cd group-activity-tracker# Force deployment
